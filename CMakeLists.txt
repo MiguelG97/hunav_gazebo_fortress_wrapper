@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 project(hunav_gazebo_fortress_wrapper VERSION 1.0)
 
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD 17)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -16,15 +16,18 @@ find_package(tinyxml2_vendor REQUIRED)
 find_package(TinyXML2 REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 find_package(hunav_msgs REQUIRED)
+find_package(builtin_interfaces REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
-find_package(ros_gz REQUIRED)
-find_package(ignition-gazebo6 REQUIRED)
-# # Needed in launch/gz_sim.launch.py.in
-set(GZ_SIM_VER ${gz-sim_VERSION_MAJOR})
 
-ign_find_package(ignition-plugin1 REQUIRED COMPONENTS register)
-set(IGN_PLUGIN_VER ${ignition-plugin1_VERSION_MAJOR})
+find_package(gz_sim_vendor REQUIRED)
+find_package(gz-sim REQUIRED)
+find_package(gz_plugin_vendor REQUIRED)
+find_package(gz-plugin REQUIRED COMPONENTS register)
+
 #set(IGN_COMMON_VER ${ignition-common_VERSION_MAJOR})
 
 
@@ -61,15 +64,15 @@ target_include_directories(HuNavSystemPluginIGN PUBLIC $<BUILD_INTERFACE:${CMAKE
 $<INSTALL_INTERFACE:include>)
 target_link_libraries(HuNavSystemPluginIGN 
     ${TINYXML2_LIBRARY}
-    #ignition-common${IGN_COMMON_VER}::ignition-common${IGN_COMMON_VER}
-    ignition-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}
+    gz-sim::core
+    gz-plugin::register
 )     
 
 ament_target_dependencies(HuNavSystemPluginIGN 
   rclcpp    
-  ros_gz
-  #gz-sim6
-  ignition-gazebo6
+  builtin_interfaces
+  std_msgs
+  tf2
   tf2_geometry_msgs
   hunav_msgs 
 ) 
@@ -79,7 +82,6 @@ install(TARGETS HuNavSystemPluginIGN #HuNavActorPluginIGN
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   #LIBRARY DESTINATION /usr/lib/x86_64-linux-gnu/ign-gazebo-6/plugins
-  LIBRARY DESTINATION ${ignition-gazebo6_PLUGIN_PATH}
   RUNTIME DESTINATION bin
 )
 
