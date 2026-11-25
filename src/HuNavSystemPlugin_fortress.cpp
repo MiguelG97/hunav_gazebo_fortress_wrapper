@@ -27,6 +27,7 @@
 
 #include <hunav_gazebo_fortress_wrapper/HuNavSystemPlugin_fortress.h>
 #include <gz/plugin/Register.hh>
+#include <gz/math/Angle.hh>
 #include <gz/plugin/RegisterMore.hh>
 #include <gz/sim/Events.hh>
 #include <gz/sim/EntityComponentManager.hh>
@@ -46,9 +47,9 @@
 
 
 
-// The error occurs because Ignition Gazebo's `EntityComponentManager` uses a custom traits system to check for equality, and this conflicts with the standard `std::chrono::duration` equality operator. This results in an ambiguous overload for the `operator==`.
+// The error occurs because Gazebo's `EntityComponentManager` uses a custom traits system to check for equality, and this conflicts with the standard `std::chrono::duration` equality operator. This results in an ambiguous overload for the `operator==`.
 //To resolve this issue, you can explicitly specialize the `HasEqualityOperator` trait for `std::chrono::steady_clock::duration` to indicate that it has a valid equality operator.
-namespace ignition::gazebo::v6::traits {
+namespace gz::sim::GZ_SIM_VERSION_NAMESPACE::traits {
   template<>
   struct HasEqualityOperator<std::chrono::steady_clock::duration> {
     static constexpr bool value = true;
@@ -86,19 +87,19 @@ void HuNavSystemPluginIGN::Configure(const gz::sim::Entity& _entity, const std::
 
   // Print the number of entities in the world
   auto size = _ecm.EntityCount();
-  ignmsg << "Number of entities: " << size << std::endl;
-  ignmsg << "Number of this entity: " << _entity << std::endl;
+  gzmsg << "Number of entities: " << size << std::endl;
+  gzmsg << "Number of this entity: " << _entity << std::endl;
 
 
   // auto entity_table = _ecm.EntityByComponents(gz::sim::components::Name("table2"));
-  // ignmsg << "'table2' entity: " << entity_table << std::endl;
+  // gzmsg << "'table2' entity: " << entity_table << std::endl;
 
   // Comprobar si la entidad tiene un nombre
   auto nameComp = _ecm.Component<gz::sim::components::Name>(_entity);
   if (nameComp)
   {
     //std::cout << "Plugin cargado en la entidad: " << nameComp->Data() << std::endl;
-    ignmsg << "Plugin loaded in entity: " << nameComp->Data() << std::endl;
+    gzmsg << "Plugin loaded in entity: " << nameComp->Data() << std::endl;
   }
 
   // Get the plugin parameters
@@ -124,7 +125,7 @@ void HuNavSystemPluginIGN::Configure(const gz::sim::Entity& _entity, const std::
   {
     waitForGoal_ = false;
     //RCLCPP_INFO(this->rosnode_->get_logger(), "PARAMETER USE_NAVGOAL_TO_START IS NOT IN THE WORLD FILE!!");
-    ignwarn << "PARAMETER USE_NAVGOAL_TO_START IS NOT IN THE WORLD FILE!!" << std::endl;
+    gzwarn << "PARAMETER USE_NAVGOAL_TO_START IS NOT IN THE WORLD FILE!!" << std::endl;
   }
 
   if (waitForGoal_)
@@ -148,7 +149,7 @@ void HuNavSystemPluginIGN::Configure(const gz::sim::Entity& _entity, const std::
     {
       ignoreModels_.push_back(modelElem->Get<std::string>());
       //RCLCPP_INFO(this->rosnode_->get_logger(), "Ignoring model: %s", (modelElem->Get<std::string>()).c_str());
-      ignmsg << "Ignoring model: " << (modelElem->Get<std::string>()) << std::endl;
+      gzmsg << "Ignoring model: " << (modelElem->Get<std::string>()) << std::endl;
       modelElem = modelElem->GetNextElement("model");
     }
   }
@@ -166,12 +167,12 @@ void HuNavSystemPluginIGN::Configure(const gz::sim::Entity& _entity, const std::
     update_rate_secs_ = 0.0;
   }
   //RCLCPP_INFO(this->rosnode_->get_logger(), "update_rate: %.2f, secs:%.4f", update_rate, update_rate_secs_);
-  ignmsg << "update_rate: " << update_rate << ", secs: " << update_rate_secs_ << std::endl;
+  gzmsg << "update_rate: " << update_rate << ", secs: " << update_rate_secs_ << std::endl;
 
   // Show all the entities in the world
   _ecm.Each<gz::sim::components::Name>([&](const gz::sim::Entity& _entity, const gz::sim::components::Name* _name)
   {
-    ignmsg << "Entity: " << _entity << " Name: " << _name->Data() << std::endl;
+    gzmsg << "Entity: " << _entity << " Name: " << _name->Data() << std::endl;
     return true;
   });
 
@@ -199,7 +200,7 @@ void HuNavSystemPluginIGN::Configure(const gz::sim::Entity& _entity, const std::
   catch (const std::exception& e)
   {
     RCLCPP_ERROR(this->rosnode_->get_logger(), "Error initializing agents: %s. Exiting...", e.what());
-    ignerr << "Error initializing agents. Exiting..." << std::endl;
+    gzerr << "Error initializing agents. Exiting..." << std::endl;
     rclcpp::shutdown();
     return;
   }
@@ -210,11 +211,11 @@ void HuNavSystemPluginIGN::Configure(const gz::sim::Entity& _entity, const std::
   catch (const std::exception& e)
   {
     RCLCPP_ERROR(this->rosnode_->get_logger(), "Error handling obstacles: %s. Exiting...", e.what());
-    ignerr << "Error handling obstacles: " << e.what() << ". Exiting..." << std::endl;
+    gzerr << "Error handling obstacles: " << e.what() << ". Exiting..." << std::endl;
     rclcpp::shutdown();
     return;
   }
-  ignmsg << "Plugin HuNavPluginIGN configured!!!!!!!!!!!!!!!" << std::endl;
+  gzmsg << "Plugin HuNavPluginIGN configured!!!!!!!!!!!!!!!" << std::endl;
 }
 
 
@@ -229,16 +230,16 @@ void HuNavSystemPluginIGN::Configure(const gz::sim::Entity& _entity, const std::
 void HuNavSystemPluginIGN::initializeRobot(gz::sim::EntityComponentManager& _ecm)
 {
   //RCLCPP_INFO(this->rosnode_->get_logger(), "Initializing robot...");
-  ignmsg << "Initializing robot..." << std::endl;
+  gzmsg << "Initializing robot..." << std::endl;
 
   robotEntity_ = _ecm.EntityByComponents(gz::sim::components::Name(robotName_));
   if(robotEntity_) {
     //RCLCPP_INFO_STREAM(this->rosnode_->get_logger(), "Robot " << robotName_ << " found!" << std::endl);
-    ignmsg << "Robot " << robotName_ << " found!" << std::endl;
+    gzmsg << "Robot " << robotName_ << " found!" << std::endl;
   }
   else {
     //RCLCPP_ERROR(this->rosnode_->get_logger(), "Robot model %s not found (yet)!!!!", robotName_.c_str());
-    ignwarn << "Robot model " << robotName_ << " not found (yet)!!!!" << std::endl;
+    gzwarn << "Robot model " << robotName_ << " not found (yet)!!!!" << std::endl;
     throw std::runtime_error("Error initializing agents. Robot model not found. Exiting...");
   }
 
@@ -270,7 +271,7 @@ void HuNavSystemPluginIGN::initializeRobot(gz::sim::EntityComponentManager& _ecm
   robotAgent_.angular_vel = 0.0; //angvel.Z();
   initRobotAgent_ = robotAgent_;
   //RCLCPP_INFO_STREAM(this->rosnode_->get_logger(), "Robot pos x: " << robotAgent_.position.position.x << ", y: " << robotAgent_.position.position.y << ", vel: " << robotAgent_.linear_vel);
-  //ignmsg << "Robot pos x: " << robotAgent_.position.position.x << ", y: " << robotAgent_.position.position.y << std::endl; // << ", vel: " << robotAgent_.linear_vel << std::endl;
+  //gzmsg << "Robot pos x: " << robotAgent_.position.position.x << ", y: " << robotAgent_.position.position.y << std::endl; // << ", vel: " << robotAgent_.linear_vel << std::endl;
 }
 
 
@@ -284,7 +285,7 @@ void HuNavSystemPluginIGN::initializeRobot(gz::sim::EntityComponentManager& _ecm
 void HuNavSystemPluginIGN::initializeAgents(gz::sim::EntityComponentManager& _ecm)
 {
   //RCLCPP_INFO(rosnode->get_logger(), "Initializing agents...");
-  ignmsg << "Initializing agents..." << std::endl;
+  gzmsg << "Initializing agents..." << std::endl;
 
   // initiate the robot state
   try
@@ -294,7 +295,7 @@ void HuNavSystemPluginIGN::initializeAgents(gz::sim::EntityComponentManager& _ec
   catch (const std::exception& e)
   {
     RCLCPP_ERROR(this->rosnode_->get_logger(), "Error initializing robot. We will try again...");
-    //ignerr << "Error initializing robot. Exiting..." << std::endl;
+    //gzerr << "Error initializing robot. Exiting..." << std::endl;
     //rclcpp::shutdown();
     return;
   }
@@ -335,7 +336,7 @@ void HuNavSystemPluginIGN::initializeAgents(gz::sim::EntityComponentManager& _ec
       auto agentEntity = _ecm.EntityByComponents(gz::sim::components::Name(agent.name));
       if(!agentEntity) {
         //RCLCPP_ERROR(rosnode->get_logger(), "Pedestrian model '%s' not found!!!!", agent.name.c_str());
-        ignerr << "ERROR! Pedestrian model " << agent.name << " not found!" << std::endl;
+        gzerr << "ERROR! Pedestrian model " << agent.name << " not found!" << std::endl;
         // std::ostringstream oss;
         // oss << "ERROR: Pedestrian model " << agent.name << " not found!" << std::endl;
         // throw std::runtime_error(oss.str());
@@ -347,32 +348,32 @@ void HuNavSystemPluginIGN::initializeAgents(gz::sim::EntityComponentManager& _ec
       auto actorComp = _ecm.Component<gz::sim::components::Actor>(agentEntity);
       if (!actorComp)
       {
-        ignerr << "Entity [" << agentEntity << "] is not an actor." << std::endl;
+        gzerr << "Entity [" << agentEntity << "] is not an actor." << std::endl;
         return;
       }
       if (actorComp->Data().AnimationCount() < 1)
       {
-        ignerr << "Actor [" << actorComp->Data().Name()  << "] SDF doesn't have any animations." << std::endl;
+        gzerr << "Actor [" << actorComp->Data().Name()  << "] SDF doesn't have any animations." << std::endl;
         return;
       }
-      ignmsg << "Actor [" << actorComp->Data().Name()  << "] has " << actorComp->Data().AnimationCount() << " animations" << std::endl;
+      gzmsg << "Actor [" << actorComp->Data().Name()  << "] has " << actorComp->Data().AnimationCount() << " animations" << std::endl;
       // we take and apply the first animation!!!!
       auto ani = actorComp->Data().AnimationByIndex(0);
-      ignmsg << "Animation name: " << ani->Name() << std::endl;
-      ignmsg << "Animation filename: " << ani->Filename() << std::endl;
+      gzmsg << "Animation name: " << ani->Name() << std::endl;
+      gzmsg << "Animation filename: " << ani->Filename() << std::endl;
 
       // Animation name
       auto animNameComp = _ecm.Component<gz::sim::components::AnimationName>(agentEntity);
       if(!animNameComp)
       {
-        ignwarn << "AnimationName component does not exist. Creating..." << std::endl;
+        gzwarn << "AnimationName component does not exist. Creating..." << std::endl;
         _ecm.SetComponentData<gz::sim::components::AnimationName>(agentEntity, ani->Name().c_str()); //DEF_WALKING_ANIMATION); //ani->Name().c_str());
         //_ecm.SetChanged(entity, gz::sim::components::AnimationName::typeId, gz::sim::ComponentState::OneTimeChange);
       }
       else
       {
         *animNameComp = gz::sim::components::AnimationName(ani->Name().c_str()); //DEF_WALKING_ANIMATION); //ani->Name().c_str());
-        ignmsg << "Actor [" << actorComp->Data().Name()  << "] has animation name: " << animNameComp->Data() << std::endl;
+        gzmsg << "Actor [" << actorComp->Data().Name()  << "] has animation name: " << animNameComp->Data() << std::endl;
       }
       _ecm.SetChanged(agentEntity, gz::sim::components::AnimationName::typeId, gz::sim::ComponentState::OneTimeChange);
 
@@ -380,7 +381,7 @@ void HuNavSystemPluginIGN::initializeAgents(gz::sim::EntityComponentManager& _ec
       auto animTimeComp = _ecm.Component<gz::sim::components::AnimationTime>(agentEntity);
       if (!animTimeComp)
       {
-        ignwarn << "AnimationTime component does not exist. Creating..." << std::endl;
+        gzwarn << "AnimationTime component does not exist. Creating..." << std::endl;
         //_ecm.CreateComponent(entity, gz::sim::components::AnimationTime());
         std::chrono::steady_clock::duration oneSecond = std::chrono::seconds(0);
         _ecm.SetComponentData<gz::sim::components::AnimationTime>(agentEntity, oneSecond);
@@ -392,12 +393,12 @@ void HuNavSystemPluginIGN::initializeAgents(gz::sim::EntityComponentManager& _ec
       {
         auto animTime = animTimeComp->Data();
         double animTimeInSeconds = std::chrono::duration_cast<std::chrono::duration<double>>(animTime).count();
-        ignmsg << "Actor [" << actorComp->Data().Name()  << "] has animation time: " << animTimeInSeconds << std::endl;
+        gzmsg << "Actor [" << actorComp->Data().Name()  << "] has animation time: " << animTimeInSeconds << std::endl;
       }
 
 
       //auto curr_pose = worldPose(agentEntity, _ecm);
-      //ignmsg << "Initialize. Actor [" << agent.name << "] pose: " << curr_pose << std::endl;
+      //gzmsg << "Initialize. Actor [" << agent.name << "] pose: " << curr_pose << std::endl;
       gz::math::Pose3d curr_pose;
       curr_pose.Pos().X(agent.position.position.x);
       curr_pose.Pos().Y(agent.position.position.y);
@@ -449,7 +450,7 @@ void HuNavSystemPluginIGN::initializeAgents(gz::sim::EntityComponentManager& _ec
       else
       {
         //By default,this happens. The WorldPose component does not exist. So, we create it.
-        ignwarn << "WARNING! Could not get World pose of actor " << agent.name << ". Creating component..." << std::endl;
+        gzwarn << "WARNING! Could not get World pose of actor " << agent.name << ". Creating component..." << std::endl;
         _ecm.SetComponentData<gz::sim::components::WorldPose>(agentEntity, curr_pose);
         //_ecm.SetComponentData<gz::sim::components::Pose>(agentEntity, curr_pose);
       }
@@ -461,13 +462,13 @@ void HuNavSystemPluginIGN::initializeAgents(gz::sim::EntityComponentManager& _ec
 
       // Trajectory
       //auto trajCount = actorComp->Data().TrajectoryCount();
-      //ignmsg << "Actor [" << actorComp->Data().Name()  << "] has " << trajCount << " trajectories" << std::endl;
+      //gzmsg << "Actor [" << actorComp->Data().Name()  << "] has " << trajCount << " trajectories" << std::endl;
       // Having a trajectory pose prevents the actor from moving with the
       // SDF script
       auto trajPoseComp = _ecm.Component<gz::sim::components::TrajectoryPose>(agentEntity);
       if (nullptr == trajPoseComp)
       {
-        ignwarn << "TrajectoryPose component does not exist. Creating..." << std::endl;
+        gzwarn << "TrajectoryPose component does not exist. Creating..." << std::endl;
         
         //_ecm.CreateComponent(entity, gz::sim::components::TrajectoryPose(initialPose));
         // Aquí probar si pasar la pose o la WorldPose. 
@@ -484,8 +485,8 @@ void HuNavSystemPluginIGN::initializeAgents(gz::sim::EntityComponentManager& _ec
       // check the pose of the actor has been updated
       auto npose = worldPose(agentEntity, _ecm);
       // auto trajec = _ecm.Component<gz::sim::components::TrajectoryPose>(agentEntity);
-      // ignmsg << "Actor [" << agent.name << "] new pose: " << npose << std::endl;
-      // ignmsg << "Actor [" << agent.name << "] trajectory pose: " << trajec->Data() << std::endl;
+      // gzmsg << "Actor [" << agent.name << "] new pose: " << npose << std::endl;
+      // gzmsg << "Actor [" << agent.name << "] trajectory pose: " << trajec->Data() << std::endl;
       
 
       double yaw = normalizeAngle(npose.Rot().Yaw());
@@ -495,12 +496,12 @@ void HuNavSystemPluginIGN::initializeAgents(gz::sim::EntityComponentManager& _ec
       myQuaternion.setRPY(0, 0, yaw);
       ag.position.orientation = tf2::toMsg(myQuaternion);
       ag.yaw = yaw;
-      // ignition::math::Vector3d linvel = model->WorldLinearVel();
+      // gz::math::Vector3d linvel = model->WorldLinearVel();
       ag.desired_velocity = agent.desired_velocity;
       ag.velocity.linear.x = 0.0; //linvel.X();
       ag.velocity.linear.y = 0.0; //linvel.Y();
       ag.linear_vel = 0.0; //linvel.Length();
-      // ignition::math::Vector3d angvel = model->WorldAngularVel();
+      // gz::math::Vector3d angvel = model->WorldAngularVel();
       ag.velocity.angular.z = 0.0;  //angvel.Z();
       ag.angular_vel = 0.0; // angvel.Z();
 
@@ -533,9 +534,9 @@ void HuNavSystemPluginIGN::initializeAgents(gz::sim::EntityComponentManager& _ec
   //     //auto animSpeed = actor.AnimationSpeed(_ecm);
   //     auto animTime = actor.AnimationTime(_ecm);
   //     if(actorName)
-  //       ignmsg << "Actor name: " << actorName.value() << std::endl; // ", Time: " << animTime.value() << std::endl;
+  //       gzmsg << "Actor name: " << actorName.value() << std::endl; // ", Time: " << animTime.value() << std::endl;
   //     if(animName)
-  //       ignmsg << "Animation name: " << animName.value() << std::endl;
+  //       gzmsg << "Animation name: " << animName.value() << std::endl;
   //     // // Create an instance of AnimationUpdateData
   //     // gz::sim::components::AnimationUpdateData animationUpdateData;
   //     // // Set the desired animation parameters
@@ -556,7 +557,7 @@ void HuNavSystemPluginIGN::initializeAgents(gz::sim::EntityComponentManager& _ec
   //   }
   //   else
   //   {
-  //     ignerr << "InitAgent " << ped.name << ". Actor entity does not have an Actor component" << std::endl;
+  //     gzerr << "InitAgent " << ped.name << ". Actor entity does not have an Actor component" << std::endl;
   //   }
 
     // gazebo::physics::TrajectoryInfoPtr trajectoryInfo;
@@ -610,8 +611,8 @@ void HuNavSystemPluginIGN::getObstacles(const gz::sim::EntityComponentManager& _
   for (const auto& p : pedestrians_)
   {
     double minDist = 5.0; //10000.0;
-    //ignition::math::Vector3d closest_obstacle;
-    // ignition::math::Vector3d closest_obs2;
+    //gz::math::Vector3d closest_obstacle;
+    // gz::math::Vector3d closest_obs2;
     pedestrians_[p.first].closest_obs.clear();
 
     //gz::math::Pose3d actor_pose = worldPose(p.first, _ecm);
@@ -619,7 +620,7 @@ void HuNavSystemPluginIGN::getObstacles(const gz::sim::EntityComponentManager& _
     auto traj = _ecm.Component<gz::sim::components::TrajectoryPose>(p.first);
     if(!traj)
     {
-      ignerr << "ERROR! Actor " << p.first << " does not have a TrajectoryPose component" << std::endl;
+      gzerr << "ERROR! Actor " << p.first << " does not have a TrajectoryPose component" << std::endl;
       continue;
     }
     auto actor_pose = traj->Data();
@@ -631,8 +632,8 @@ void HuNavSystemPluginIGN::getObstacles(const gz::sim::EntityComponentManager& _
       actor_pose.Pos() - actor_size / 2,
       actor_pose.Pos() + actor_size / 2
     );
-    //ignmsg << std::endl << "Checking obstacles entities for Actor " << p.first << ", name: " << actor_name->Data() << std::endl;
-    //ignmsg << "Actor pose: " << actor_pose << std::endl;
+    //gzmsg << std::endl << "Checking obstacles entities for Actor " << p.first << ", name: " << actor_name->Data() << std::endl;
+    //gzmsg << "Actor pose: " << actor_pose << std::endl;
 
     // for each actor, iterate over all the models in the world
     std::unordered_map<gz::sim::Entity, gz::math::Pose3d> obs_entities;
@@ -659,10 +660,10 @@ void HuNavSystemPluginIGN::getObstacles(const gz::sim::EntityComponentManager& _
         RCLCPP_INFO_STREAM(this->rosnode_->get_logger(), "Entity " << obs_enty <<  " Obstacle name: " << obs_name->Data() << ", position [" << obs_pose.Pos().X() << "," << obs_pose.Pos().Y() << "]" << std::endl);
       //gz::math::Vector3d offset = obs_pose.Pos() - actor_pose.Pos();
       //double modelDist = offset.Length();
-      // ignmsg << std::endl;
-      // ignmsg << "Entity: " << obs_name->Data() << " Pose: " << obs_pose.Pos() << std::endl;
-      // ignmsg << "Actor: " << actor_name->Data() << " Pose: " << actor_pose.Pos() << std::endl; //pose->Data() is a gz::math::Pose3d
-      // ignmsg << "Distance between " << obs_name->Data() << " and actor " << actor_name->Data() << " is " << modelDist << " m" << std::endl;
+      // gzmsg << std::endl;
+      // gzmsg << "Entity: " << obs_name->Data() << " Pose: " << obs_pose.Pos() << std::endl;
+      // gzmsg << "Actor: " << actor_name->Data() << " Pose: " << actor_pose.Pos() << std::endl; //pose->Data() is a gz::math::Pose3d
+      // gzmsg << "Distance between " << obs_name->Data() << " and actor " << actor_name->Data() << " is " << modelDist << " m" << std::endl;
       
       // ALIGNEDBOXES CAN NOT BE ACCESSED
       // auto act_alignedBox = _ecm.Component<gz::sim::components::AxisAlignedBox>(obs_enty);
@@ -704,7 +705,7 @@ void HuNavSystemPluginIGN::getObstacles(const gz::sim::EntityComponentManager& _
         {
           // if the object is a mesh, we ignore it
           // we can not cover all the possible cases
-          ignmsg << "Entity " << obs_name->Data() << " has an unknown geometry" << std::endl;
+          gzmsg << "Entity " << obs_name->Data() << " has an unknown geometry" << std::endl;
           continue;
         }
         
@@ -713,12 +714,12 @@ void HuNavSystemPluginIGN::getObstacles(const gz::sim::EntityComponentManager& _
         // Compute the closest point on the bounding box to the actor
         auto closest_point = ClosestPointOnBox(actor_pose.Pos(), obs_bb);
         double distance = (closest_point - actor_pose.Pos()).Length();
-        // ignmsg << "Distance to the obstacle: " << distance << " m" << std::endl;
+        // gzmsg << "Distance to the obstacle: " << distance << " m" << std::endl;
         if(distance < minDist)
         {
           //minDist = distance;
           //closest_obstacle = closest_point;
-          //ignmsg << "Closest point on bounding box: " << closest_obstacle << std::endl;
+          //gzmsg << "Closest point on bounding box: " << closest_obstacle << std::endl;
           geometry_msgs::msg::Point point;
           point.x = closest_point.X();
           point.y = closest_point.Y();
@@ -730,7 +731,7 @@ void HuNavSystemPluginIGN::getObstacles(const gz::sim::EntityComponentManager& _
       {
         // if the entity has no geometry component, we can just use the center position
         // to build a default small bounding box around it, and we pray.  
-        //ignmsg << "Entity " << obs_name->Data() << " has no Geometry component" << std::endl;
+        //gzmsg << "Entity " << obs_name->Data() << " has no Geometry component" << std::endl;
         auto default_size = gz::math::Vector3d(0.35, 0.35, 1.0);
         gz::math::AxisAlignedBox obs_bb = gz::math::AxisAlignedBox(
           obs_pose.Pos() - default_size / 2,
@@ -741,12 +742,12 @@ void HuNavSystemPluginIGN::getObstacles(const gz::sim::EntityComponentManager& _
         // Compute the closest point on the bounding box to the actor
         auto closest_point = ClosestPointOnBox(actor_pose.Pos(), obs_bb);
         double distance = (closest_point - actor_pose.Pos()).Length();
-        //ignmsg << "Distance to the obstacle: " << distance << " m" << std::endl;
+        //gzmsg << "Distance to the obstacle: " << distance << " m" << std::endl;
         if(distance < minDist)
         {
           //minDist = distance;
           //closest_obstacle = closest_point;
-          //ignmsg << "Closest point on bounding box: " << closest_obstacle << std::endl;
+          //gzmsg << "Closest point on bounding box: " << closest_obstacle << std::endl;
           geometry_msgs::msg::Point point;
           point.x = closest_point.X();
           point.y = closest_point.Y();
@@ -852,17 +853,17 @@ bool HuNavSystemPluginIGN::getPedestrianStates(const gz::sim::EntityComponentMan
     auto traj = _ecm.Component<gz::sim::components::TrajectoryPose>(pedEntity);
     if(!traj)
     {
-      ignerr << "ERROR! TrajectoryPose component does not exist for actor " << pedAgent.name << std::endl;
+      gzerr << "ERROR! TrajectoryPose component does not exist for actor " << pedAgent.name << std::endl;
       continue;
     }
     gz::math::Pose3d pose = traj->Data();
     pose.Pos().Z(0.0); // we set the Z coordinate to 0.0
     //gz::math::Pose3d wp = worldPose(pedEntity, _ecm);
-    //ignmsg << "GetPedestians: Actor [" << pedAgent.name << "] worldpose: " << wp << std::endl;
-    //ignmsg << "GetPedestians: Actor [" << pedAgent.name << "] trajpose:  " << pose << std::endl;
+    //gzmsg << "GetPedestians: Actor [" << pedAgent.name << "] worldpose: " << wp << std::endl;
+    //gzmsg << "GetPedestians: Actor [" << pedAgent.name << "] trajpose:  " << pose << std::endl;
     //double yaw = normalizeAngle(pose.Rot().Yaw() - M_PI_2);
     double yaw = normalizeAngle(pose.Rot().Yaw());
-    ignition::math::Vector3d pos = pose.Pos();
+    gz::math::Vector3d pos = pose.Pos();
 
     // Actors in Gazebo (specifically those that move using animations) do not have real physical dynamics 
     // like normal models. This means they do not automatically generate linear and angular velocity values 
@@ -956,7 +957,7 @@ void HuNavSystemPluginIGN::computeLinearVel(const gz::math::Pose3d& prevPose, co
   // Linear velocity
   linearVelocity = deltaPosition / dt;
   //linearVelocity.Z(0.0); // Ignore Z component
-  //ignmsg << "Delta position: " << deltaPosition << ", Linear velocity: " << linearVelocity << std::endl;
+  //gzmsg << "Delta position: " << deltaPosition << ", Linear velocity: " << linearVelocity << std::endl;
 
   // Update previous values
   //prevPose = currentPose;
@@ -1049,7 +1050,7 @@ void HuNavSystemPluginIGN::updateGazeboPedestrians(gz::sim::EntityComponentManag
     if(!entity)
     {
       RCLCPP_ERROR(rosnode_->get_logger(), "Pedestrian model '%s' not found!!!!", a.name.c_str());
-      ignerr << "ERROR: Pedestrian model " << a.name << " not found! Shutting down ROS node" << std::endl;
+      gzerr << "ERROR: Pedestrian model " << a.name << " not found! Shutting down ROS node" << std::endl;
       std::ostringstream oss;
       oss << "ERROR: Pedestrian model " << a.name << " not found!" << std::endl;
       throw std::runtime_error(oss.str());
@@ -1073,7 +1074,7 @@ void HuNavSystemPluginIGN::updateGazeboPedestrians(gz::sim::EntityComponentManag
     //yaw -= 0.30;
     double currAngle = actorPose.Rot().Yaw();
     double diff = normalizeAngle(yaw - currAngle);
-    if (std::fabs(diff) > IGN_DTOR(10)) //25 degrees to rads
+    if (std::fabs(diff) > GZ_DTOR(10)) //25 degrees to rads
     {
       yaw = normalizeAngle(currAngle + (diff * 0.01));  // 0.01, 0.005
     }
@@ -1087,7 +1088,7 @@ void HuNavSystemPluginIGN::updateGazeboPedestrians(gz::sim::EntityComponentManag
     actorPose.Pos().Z(0.8);
     //fixActorHeight(a, actorPose);
     // I have to add some pitch to show the agents properly (0.35)
-    actorPose.Rot() = ignition::math::Quaterniond(0, 0, yaw);
+    actorPose.Rot() = gz::math::Quaterniond(0, 0, yaw);
 
 
     // UPDATE TRAJECTORY POSE
@@ -1107,7 +1108,7 @@ void HuNavSystemPluginIGN::updateGazeboPedestrians(gz::sim::EntityComponentManag
     }
     else
     {
-      ignwarn << "!!!!! UpdateAgents. WorldPose component does not exist for actor " << a.name << std::endl;
+      gzwarn << "!!!!! UpdateAgents. WorldPose component does not exist for actor " << a.name << std::endl;
     }
 
 
@@ -1192,12 +1193,12 @@ void HuNavSystemPluginIGN::updateGazeboPedestrians(gz::sim::EntityComponentManag
     double animationFactor = 5.0; //0.005; //Noé
     auto animTimeComp = _ecm.Component<gz::sim::components::AnimationTime>(entity);
     //double animTimeInSeconds = std::chrono::duration_cast<std::chrono::duration<double>>(animTimeComp->Data()).count();
-    //ignmsg << "Animation time: " << animTimeInSeconds << std::endl;
+    //gzmsg << "Animation time: " << animTimeInSeconds << std::endl;
     auto animTime = animTimeComp->Data() + std::chrono::duration_cast<std::chrono::steady_clock::duration>(
       std::chrono::duration<double>(distanceTraveled * animationFactor));
     //auto animTime =  std::chrono::duration_cast<std::chrono::steady_clock::duration>(
     //  std::chrono::duration<double>(distanceTraveled * animationFactor));
-    //ignmsg << "Animation time: " << animTime.count() << std::endl;
+    //gzmsg << "Animation time: " << animTime.count() << std::endl;
     *animTimeComp = gz::sim::components::AnimationTime(animTime);
     //_ecm.SetComponentData<gz::sim::components::AnimationTime>(entity, animTime);
     // Mark as a one-time-change so that the change is propagated to the GUI
@@ -1250,11 +1251,11 @@ void HuNavSystemPluginIGN::PreUpdate(const gz::sim::UpdateInfo& _info, gz::sim::
   //(void)_ecm;
   // std::string st;
   // auto pose = _ecm.Component<gz::sim::components::Pose>(actorEntity_)->Data();
-  // //ignmsg << "Actor pose: " << pose << std::endl;
+  // //gzmsg << "Actor pose: " << pose << std::endl;
   // _info.paused ? st = "Simulation paused": st = "Simulation running";
 
   // _info.simTime;
-  // //ignmsg << st << std::endl;
+  // //gzmsg << st << std::endl;
   // std_msgs::msg::String msg;
   // msg.data = st;
   // this->ros_test_pub_->publish(msg);
@@ -1266,7 +1267,7 @@ void HuNavSystemPluginIGN::PreUpdate(const gz::sim::UpdateInfo& _info, gz::sim::
   if (_info.paused) {
     if(counter_ == 1000)
     {
-      ignmsg << "Simulation paused" << std::endl;
+      gzmsg << "Simulation paused" << std::endl;
       counter_ = 0;
     }
     //lastUpdate_ = _info.simTime;
@@ -1294,14 +1295,14 @@ void HuNavSystemPluginIGN::PreUpdate(const gz::sim::UpdateInfo& _info, gz::sim::
   if(!getRobotState(_ecm, dt))
   {
     RCLCPP_ERROR(this->rosnode_->get_logger(), "Failed to get robot state. Exiting...");
-    ignerr << "Failed to get robot state. Exiting..." << std::endl;
+    gzerr << "Failed to get robot state. Exiting..." << std::endl;
     rclcpp::shutdown();
     return;
   }
   if(!getPedestrianStates(_ecm, dt))
   {
     RCLCPP_ERROR(this->rosnode_->get_logger(), "Failed to get pedestrian states. Exiting...");
-    ignerr << "Failed to get pedestrian states. Exiting..." << std::endl;
+    gzerr << "Failed to get pedestrian states. Exiting..." << std::endl;
     rclcpp::shutdown();
     return;
   }
@@ -1396,6 +1397,6 @@ void HuNavSystemPluginIGN::PreUpdate(const gz::sim::UpdateInfo& _info, gz::sim::
 
 
 
-IGNITION_ADD_PLUGIN(HuNavSystemPluginIGN, gz::sim::System, HuNavSystemPluginIGN::ISystemConfigure, HuNavSystemPluginIGN::ISystemPreUpdate/*, HuNavPluginIGN::ISystemPostUpdate, HuNavPluginIGN::ISystemReset*/)
+GZ_ADD_PLUGIN(HuNavSystemPluginIGN, gz::sim::System, HuNavSystemPluginIGN::ISystemConfigure, HuNavSystemPluginIGN::ISystemPreUpdate/*, HuNavPluginIGN::ISystemPostUpdate, HuNavPluginIGN::ISystemReset*/)
 
-IGNITION_ADD_PLUGIN_ALIAS(HuNavSystemPluginIGN, "HuNavSystemPluginIGN")
+GZ_ADD_PLUGIN_ALIAS(HuNavSystemPluginIGN, "HuNavSystemPluginIGN")
