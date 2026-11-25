@@ -5,11 +5,11 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (IncludeLaunchDescription, RegisterEventHandler,
                             DeclareLaunchArgument, AppendEnvironmentVariable,
-                            SetEnvironmentVariable, LogInfo, TimerAction)
+                            LogInfo, TimerAction)
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import (PathJoinSubstitution, PythonExpression, LaunchConfiguration, EnvironmentVariable)
+from launch.substitutions import (PathJoinSubstitution, PythonExpression, LaunchConfiguration)
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
+from launch_ros.substitutions import FindPackagePrefix, FindPackageShare
 from launch.event_handlers import (OnExecutionComplete, OnProcessExit,
                                 OnProcessIO, OnProcessStart, OnShutdown)
 
@@ -94,27 +94,19 @@ def generate_launch_description():
         'worlds',
     ])
     
-    set_env_gz_resources = SetEnvironmentVariable(
-        name='GZ_SIM_RESOURCE_PATH', 
-        value=[EnvironmentVariable('GZ_SIM_RESOURCE_PATH'), my_gazebo_models]
-    )
     set_env_gz_append_resources = AppendEnvironmentVariable(
             'GZ_SIM_RESOURCE_PATH',
             my_gazebo_models)
 
-    set_env_gazebo_resources = SetEnvironmentVariable(
-        name='GAZEBO_RESOURCE_PATH', 
-        value=[EnvironmentVariable('GAZEBO_RESOURCE_PATH'), my_gazebo_models]
-    )
-    
-    # # Add plugin to gazebo path
-    # my_gazebo_plugins = PathJoinSubstitution([
-    #     FindPackageShare('hunav_gazebo_fortress_wrapper'),
-    #     'plugins',
-    # ])
-    # set_env_gz_plugins = AppendEnvironmentVariable(
-    #         'GZ_SIM_SYSTEM_PLUGIN_PATH',
-    #         my_gazebo_plugins)
+    # The generated world names the HuNav plugin by file name only,
+    # so Gazebo has to be told where it is installed
+    my_gazebo_plugins = PathJoinSubstitution([
+        FindPackagePrefix('hunav_gazebo_fortress_wrapper'),
+        'lib',
+    ])
+    set_env_gz_plugins = AppendEnvironmentVariable(
+            'GZ_SIM_SYSTEM_PLUGIN_PATH',
+            my_gazebo_plugins)
     
 
     # the world generator will create this world
@@ -193,7 +185,7 @@ def generate_launch_description():
 
     # Declare the launch arguments
     declare_arg_world = DeclareLaunchArgument(
-        'environment_name', default_value='cafe_test.sdf',
+        'environment_name', default_value='cafe',
         description='Specify world file name'
     )
     declare_arg_verbose = DeclareLaunchArgument(
@@ -201,8 +193,8 @@ def generate_launch_description():
         description='Set "true" to increase messages written to terminal.'
     )
     declare_agents_file = DeclareLaunchArgument(
-        'configuration_file', default_value='agents_test.yaml',
-        description='Specify configuration file name in the cofig directory'
+        'configuration_file', default_value='cafe_agents.yaml',
+        description='Specify configuration file name in the scenarios directory'
     )
     declare_gz_obs = DeclareLaunchArgument(
         'use_gazebo_obs', default_value='true',
@@ -236,10 +228,8 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     # set environment variables
-    ld.add_action(set_env_gz_resources)
     ld.add_action(set_env_gz_append_resources)
-    ld.add_action(set_env_gazebo_resources)
-    #ld.add_action(set_env_gz_plugins)
+    ld.add_action(set_env_gz_plugins)
 
     # Declare the launch arguments
     ld.add_action(declare_arg_world)

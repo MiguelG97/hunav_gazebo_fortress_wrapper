@@ -452,25 +452,25 @@ bool WorldGenerator::writeRos2Plugins(tinyxml2::XMLDocument &doc)
 {
   // Physics plugin
   tinyxml2::XMLElement* physicsPlugin = doc.NewElement("plugin");
-  physicsPlugin->SetAttribute("filename", "libignition-gazebo-physics-system.so");
-  physicsPlugin->SetAttribute("name", "ignition::gazebo::systems::Physics");
+  physicsPlugin->SetAttribute("filename", "gz-sim-physics-system");
+  physicsPlugin->SetAttribute("name", "gz::sim::systems::Physics");
 
   // Sensors plugin
   tinyxml2::XMLElement* sensorsPlugin = doc.NewElement("plugin");
-  sensorsPlugin->SetAttribute("filename", "libignition-gazebo-sensors-system.so");
-  sensorsPlugin->SetAttribute("name", "ignition::gazebo::systems::Sensors");
+  sensorsPlugin->SetAttribute("filename", "gz-sim-sensors-system");
+  sensorsPlugin->SetAttribute("name", "gz::sim::systems::Sensors");
   tinyxml2::XMLElement* pRender = doc.NewElement("render_engine");
-  pRender->SetText("ogre"); //ogre2
+  pRender->SetText("ogre2");
 
   // Commands plugin
   tinyxml2::XMLElement* cmdsPlugin = doc.NewElement("plugin");
-  cmdsPlugin->SetAttribute("filename", "libignition-gazebo-user-commands-system.so");
-  cmdsPlugin->SetAttribute("name", "ignition::gazebo::systems::UserCommands");
+  cmdsPlugin->SetAttribute("filename", "gz-sim-user-commands-system");
+  cmdsPlugin->SetAttribute("name", "gz::sim::systems::UserCommands");
 
   // Broadcast plugin
   tinyxml2::XMLElement* brcastPlugin = doc.NewElement("plugin");
-  brcastPlugin->SetAttribute("filename", "libignition-gazebo-scene-broadcaster-system.so");
-  brcastPlugin->SetAttribute("name", "ignition::gazebo::systems::SceneBroadcaster");
+  brcastPlugin->SetAttribute("filename", "gz-sim-scene-broadcaster-system");
+  brcastPlugin->SetAttribute("name", "gz::sim::systems::SceneBroadcaster");
 
   // Insert in the XML
   doc.FirstChildElement("sdf")->FirstChildElement("world")->InsertFirstChild(brcastPlugin);
