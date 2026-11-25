@@ -1329,7 +1329,9 @@ void HuNavSystemPluginIGN::PreUpdate(const gz::sim::UpdateInfo& _info, gz::sim::
   builtin_interfaces::msg::Time ros_time;
   ros_time.sec = static_cast<int32_t>(simTime.count());
   ros_time.nanosec = static_cast<uint32_t>(simTimeNsec.count());
-  agents.header.stamp = this->rosnode_->get_clock()->now(); //ros_time;
+  // rosnode_ does give the computer's clock. 
+  // The agents would walk away from their goals if ros_time is not used (simulation time).
+  agents.header.stamp = ros_time;
   std::vector<hunav_msgs::msg::Agent> vector;
   vector.reserve(pedestrians_.size()); // Reserve space to avoid multiple allocations
   for (const auto& pair : pedestrians_)
